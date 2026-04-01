@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Gourmet Menu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="menu-screen" class="hidden">
+        <div class="menu-header">
+            <h1>Gourmet AR Menu</h1>
+            <p>Select a dish to preview in immersive 3D</p>
+        </div>
+        <div id="dish-grid" class="dish-grid">
+        </div>
+    </div>
+
+
+    <div id="viewer-screen" class="hidden">
+        <div id="canvas-container"></div>
+        
+        <button id="back-to-menu-btn" class="back-btn">&larr; Back to Menu</button>
+        
+        <div id="loading-overlay" class="active">
+            <div class="spinner"></div>
+            <p>Preparing your dish...</p>
+        </div>
+
+        <div id="instruction-overlay">
+            <p>Tap the dish for details</p>
+        </div>
+
+        <div id="food-info-panel" class="hidden">
+            <div class="panel-header">
+                <h1 id="dish-name">Placeholder</h1>
+                <span class="close-btn" id="close-btn">&times;</span>
+            </div>
+            <div class="panel-body">
+                <div class="info-row">
+                    <span class="label">Price:</span>
+                    <span class="value" id="dish-price">$0.00</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Calories:</span>
+                    <span class="value" id="dish-calories">0 kcal</span>
+                </div>
+                <p class="description" id="dish-description">Placeholder description.</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "@mkkellogg/gaussian-splats-3d": "https://unpkg.com/@mkkellogg/gaussian-splats-3d@0.4.5/build/gaussian-splats-3d.module.js"
+            }
+        }
+    </script>
+    
+    <script type="module" src="main.js"></script>
+</body>
+</html>
