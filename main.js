@@ -83,7 +83,9 @@ if (!selectedDishId) {
         const container = document.getElementById('canvas-container');
 
         const arAnchorGroup = new THREE.Group();
-        arAnchorGroup.visible = false;
+        // Hide by moving it far away from the camera instead of making it invisible,
+        // which can prevent custom shaders or splat viewers from loading properly.
+        arAnchorGroup.position.set(0, -9999, 0); 
         const scene = new THREE.Scene();
         scene.add(arAnchorGroup);
 
@@ -120,7 +122,11 @@ if (!selectedDishId) {
         scene.add(hemiLight);
 
         document.getElementById('viewer-screen').appendChild(
-            ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] })
+            ARButton.createButton(renderer, { 
+                requiredFeatures: ['hit-test'],
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: { root: document.body }
+            })
         );
 
         const reticleGeometry = new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2);
@@ -230,7 +236,11 @@ if (!selectedDishId) {
             if (reticle.visible && !hasPlaced) {
                 arAnchorGroup.position.setFromMatrixPosition(reticle.matrix);
                 arAnchorGroup.scale.set(0.6, 0.6, 0.6);
-                arAnchorGroup.visible = true;
+                // Extract rotation from reticle matrix so it sits flat
+                const reticleRotation = new THREE.Quaternion();
+                reticleRotation.setFromRotationMatrix(reticle.matrix);
+                arAnchorGroup.quaternion.copy(reticleRotation);
+
                 hasPlaced = true;
                 
                 instructionOverlay.innerHTML = "<p>Tap the dish for details</p>";
@@ -278,9 +288,9 @@ if (!selectedDishId) {
                         hitTestSource = null;
                         hasPlaced = false;
 
-                        arAnchorGroup.position.set(0, 0, 0);
+                        // Hide again
+                        arAnchorGroup.position.set(0, -9999, 0);
                         arAnchorGroup.scale.set(1, 1, 1);
-                        arAnchorGroup.visible = false;
                         
                         instructionOverlay.innerHTML = "<p>Tap 'START AR' to proceed</p>";
                         instructionOverlay.classList.add('visible');
@@ -302,6 +312,10 @@ if (!selectedDishId) {
                 }
             } else {
                 reticle.visible = false;
+            }
+
+            if (viewer) {
+                viewer.update();
             }
 
             renderer.render(scene, camera);
