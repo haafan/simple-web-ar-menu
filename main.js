@@ -83,8 +83,22 @@ if (!selectedDishId) {
         const container = document.getElementById('canvas-container');
 
         const arAnchorGroup = new THREE.Group();
+        arAnchorGroup.visible = false;
         const scene = new THREE.Scene();
         scene.add(arAnchorGroup);
+
+        // Optional shadow plane
+        const shadowGeometry = new THREE.CircleGeometry(0.8, 32);
+        const shadowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.15,
+            depthWrite: false
+        });
+        const shadowPlane = new THREE.Mesh(shadowGeometry, shadowMaterial);
+        shadowPlane.rotation.x = -Math.PI / 2;
+        shadowPlane.position.y = 0.01;
+        arAnchorGroup.add(shadowPlane);
 
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
         camera.position.set(0, 1.5, 3.5);
@@ -134,10 +148,15 @@ if (!selectedDishId) {
         viewer.addSplatScene(`./assets/${dishData.file}`).then(() => {
             loadingOverlay.classList.remove('active');
 
+            instructionOverlay.innerHTML = "<p>Tap 'START AR' to proceed</p>";
             instructionOverlay.classList.add('visible');
-            setTimeout(() => {
-                instructionOverlay.classList.remove('visible');
-            }, 4500);
+            
+            renderer.xr.addEventListener('sessionstart', () => {
+                instructionOverlay.innerHTML = "<p>Scan for a flat surface and tap to place</p>";
+                instructionOverlay.classList.add('visible');
+            });
+
+
 
             const geometry = new THREE.SphereGeometry(0.8, 32, 16);
             const material = new THREE.MeshBasicMaterial({
@@ -197,6 +216,8 @@ if (!selectedDishId) {
         });
 
 
+        let hasPlaced = false;
+
         // --- AR Environment Controller Anchoring --- //
         function createARController() {
             const controller = renderer.xr.getController(0);
@@ -205,10 +226,29 @@ if (!selectedDishId) {
         }
         createARController();
 
-        function onSelectAR() {
-            if (reticle.visible) {
+        function onSelectAR(event) {
+            if (reticle.visible && !hasPlaced) {
                 arAnchorGroup.position.setFromMatrixPosition(reticle.matrix);
                 arAnchorGroup.scale.set(0.6, 0.6, 0.6);
+                arAnchorGroup.visible = true;
+                hasPlaced = true;
+                
+                instructionOverlay.innerHTML = "<p>Tap the dish for details</p>";
+                setTimeout(() => {
+                    instructionOverlay.classList.remove('visible');
+                }, 4000);
+            } else if (hasPlaced && interactionMesh) {
+                const controller = event.target;
+                const tempMatrix = new THREE.Matrix4();
+                tempMatrix.identity().extractRotation(controller.matrixWorld);
+                raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+                raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+                
+                const intersects = raycaster.intersectObject(interactionMesh);
+                if (intersects.length > 0) {
+                    foodInfoPanel.classList.add('visible');
+                    instructionOverlay.classList.remove('visible');
+                }
             }
         }
 
@@ -236,14 +276,19 @@ if (!selectedDishId) {
                     session.addEventListener('end', function () {
                         hitTestSourceRequested = false;
                         hitTestSource = null;
+                        hasPlaced = false;
 
                         arAnchorGroup.position.set(0, 0, 0);
                         arAnchorGroup.scale.set(1, 1, 1);
+                        arAnchorGroup.visible = false;
+                        
+                        instructionOverlay.innerHTML = "<p>Tap 'START AR' to proceed</p>";
+                        instructionOverlay.classList.add('visible');
                     });
                     hitTestSourceRequested = true;
                 }
 
-                if (hitTestSource) {
+                if (hitTestSource && !hasPlaced) {
                     const hitTestResults = frame.getHitTestResults(hitTestSource);
                     if (hitTestResults.length > 0) {
                         const hit = hitTestResults[0];
@@ -252,6 +297,8 @@ if (!selectedDishId) {
                     } else {
                         reticle.visible = false;
                     }
+                } else if (hasPlaced) {
+                    reticle.visible = false;
                 }
             } else {
                 reticle.visible = false;
